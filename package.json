@@ -1,0 +1,32 @@
+{
+  "name": "@cloudcall/batch-requests",
+  "version": "0.0.1",
+  "description": "A really simple library that just may save you a headache . . . for the time being. A temporary batcher to stop mulitple requests to API endpoints or just general batching of data",
+  "main": "dist/index.js",
+  "private": false,
+  "bugs": {
+    "email": "development@cloudcall.com",
+    "url": "https://github.com/cloudcalldev/batch-requester/issues"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "jest --coverage --notify --color --roots ./test",
+    "lint": "tslint -p . --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cloudcalldev/batch-requester"
+  },
+  "displayName": "Batch Requests",
+  "readme": "readme.md",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^24.0.11",
+    "jest": "^24.5.0",
+    "ts-jest": "^24.0.0",
+    "tslint": "^5.14.0",
+    "tslint-config-cloudcall": "^5.14.3",
+    "typescript": "^3.3.4000"
+  }
+}

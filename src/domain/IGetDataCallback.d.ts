@@ -1,0 +1,1 @@
+export type IGetDataCallback<T, S> = ( arg0: T[] ) => S[] | Promise<S[]>;

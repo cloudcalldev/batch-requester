@@ -1,0 +1,1 @@
+export interface ICompletedBatches<T> {[requestId: number]: T[]}

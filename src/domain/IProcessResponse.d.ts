@@ -1,0 +1,1 @@
+export type IProcessResponse<T> = (value: T[]) => void;
