@@ -34,11 +34,11 @@ With simple usage, this library is super easy to hit the ground running with. To
 
 1. Wrap you data function in it's own function
 2. Create a mapping function
-3. Create a new RequestContainer instance and call make request
+3. Create a new Batcher instance and call make request
 
 
 ```typescript
-import { RequestContainer } from 'batch-requests';
+import { Batcher } from 'batch-requests';
 
 class TestClass {
 
@@ -68,8 +68,7 @@ class TestClass {
 
     public lookupAPI() {
 
-        const batch = new RequestContainer({
-            name: 'API Lookup',
+        const batch = new Batcher({
             getDataCallback: this._httpLookup,
             mappingCallback: this._mappingCallback
         });
