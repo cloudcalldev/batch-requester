@@ -1,5 +1,5 @@
 {
-  "name": "@cloudcall/batch-requests",
+  "name": "@cloudcall/batch-requester",
   "version": "1.0.0",
   "description": "A really simple library that just may save you a headache . . . for the time being. A temporary batcher to stop mulitple requests to API endpoints or just general batching of data",
   "main": "dist/index.js",
