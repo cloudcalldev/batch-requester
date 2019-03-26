@@ -90,9 +90,5 @@ class TestClass {
 }
 ```
 
-## Change History
-- v1.0.0 (TBC)
-    - First Release
-
 ## License (MIT)
 See the LICENSE file for details
