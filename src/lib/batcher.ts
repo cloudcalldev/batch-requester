@@ -53,7 +53,7 @@ export default class Batcher<Input, PreTransform, Output> {
      * @type {number}
      * @memberof Batch
      */
-    private _maxSize: number;;
+    private _maxSize: number;
 
     /**
      *
@@ -253,7 +253,7 @@ export default class Batcher<Input, PreTransform, Output> {
      *
      * @summary Function that allocates input items to batches
      * @description This function takes an array of elements and allocates them to the correct batches, if there are errors thrown, it conditionally manages them
-     * @todo Refactor this function, flow logic shouldnt be in catch and errors need handling similar to individual item errors 
+     * @todo Refactor this function, flow logic shouldnt be in catch and errors need handling similar to individual item errors
      * @private
      * @param {Input[]} input Array of items to be added to batches
      * @returns {Array<Promise<PreTransform[]>>} Array of promises for the batches that have been created
