@@ -1,7 +1,7 @@
 # Batch Requester
-![GitHub release](https://img.shields.io/github/release/cloudcalldev/batch-requester.svg?style=flat-square)
-![GitHub issues](https://img.shields.io/github/issues/cloudcalldev/batch-requester.svg?style=flat-square)
-![GitHub](https://img.shields.io/github/license/cloudcalldev/batch-requester.svg?style=flat-square)
+![NPM Downloads](https://img.shields.io/npm/dt/@cloudcall/batch-requester.svg)
+![GitHub issues](https://img.shields.io/github/issues/cloudcalldev/batch-requester.svg)
+[![Build Status](https://travis-ci.org/cloudcalldev/batch-requester.svg?branch=master)](https://travis-ci.org/cloudcalldev/batch-requester)
 
 A really simple library that just may save you a headache . . . for the time being.
 
@@ -10,17 +10,17 @@ Do any of the below sound familiar?
 
 - Noticing multiple duplicate HTTP Requests
 - Requests to an endpoint per item, when a batch endpoint could be used
-- Mulitple function calls that could also be called with a single array of items
+- Multiple function calls that could also be called with a single array of items
 - Other things that you want to together batch
 
 Sometimes, writing good, logical code is - unfortunately - just not an option. Most developers have come across a legacy codebase that just needs rewriting to avoid those 100 duplicate requests ripping apart an API endpoint. As you will know, this is not always an option; whether it's commercial or technical limitations.
 
-Hindsight is always a great thing, especially when it comes to code implementations. If past descisions or misconsiderations are now causing you a headache similar to above and you need a quick, temporary fix. This is what you need.
+Hindsight is always a great thing, especially when it comes to code implementations. If past decisions or mis-considerations are now causing you a headache similar to above and you need a quick, temporary fix. This is what you need.
 
 **Important:** This library is ***not*** a ***permanent solution***. This is a *sticky plaster* that is to get you and your users by.
 
 ## Installation
-Currently the library can be added via NPM and saved as a dependency. This libary is ***not*** suitable for global installation
+Currently the library can be added via NPM and saved as a dependency. This library is ***not*** suitable for global installation
 
 ```
 npm install --save @cloudcall/batch-requester
@@ -45,13 +45,13 @@ class TestClass {
     constructor() {
         this.lookupAPI();
     }
-    
+
     private _httpLookup(requestData) {
         return [
             {
-                id: 1, 
+                id: 1,
                 name: 'Name 1'
-            }, 
+            },
             ...
             {
                 id: 10,
