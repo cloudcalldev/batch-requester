@@ -117,9 +117,6 @@ export default class Batch<Input, PreTransform> {
      * @param {Input[]} [initialItems=[]] The initial items to start the batch with
      * @todo Move parameters to an opts object
      * @todo Move default values to a configuration file
-     * @todo Set a minimum/maximum value that can be passed to maxSize
-     * @todo Set a minimum/maximum value that can be passed to maxDataFetchTime
-     * @todo Set a minimum/maximum value that can be passed to timeout
      * @memberof Batch
      */
     constructor(
@@ -132,7 +129,7 @@ export default class Batch<Input, PreTransform> {
 
         initialItems = ConvertToArray(initialItems);
 
-        this._validateConstructParameters(dataFunction);
+        this._validateConstructParameters(dataFunction, maxSize, maxDataFetchTime, timeout);
 
         this._items = initialItems;
         this._delayBetweenRequests = timeout;
@@ -281,13 +278,25 @@ export default class Batch<Input, PreTransform> {
      * @summary Simply validate the constructor parameters
      * @description Checks the required input parameters and checks they exist and are of the correct type. If one of these checks fails, the function throws an error.
      * @throws {Error} Data Function must be provided
-     * @todo Add in check for dataFunction type
      * @private
      * @param {IGetDataCallback<Input, PreTransform>} dataFunction The dataFunction to be passed in from the constructor
      * @memberof Batch
      */
-    private _validateConstructParameters(dataFunction: IGetDataCallback<Input, PreTransform>): void {
+    private _validateConstructParameters(dataFunction: IGetDataCallback<Input, PreTransform>, maxSize: number, maxDataFetchTime: number, timeout: number): void {
+
         if (!dataFunction) throw new Error("Data Function must be provided");
+
+        if (typeof dataFunction !== "function") throw new Error("Data Function must be a function");
+
+        // tslint:disable-next-line:no-magic-numbers
+        if (maxSize < 5 || maxSize > 1000) throw new Error("Max size does not fall within allowed range");
+
+        // tslint:disable-next-line:no-magic-numbers
+        if (maxDataFetchTime < 500 || maxDataFetchTime > 30000) throw new Error("Max Data Fetch Time does not fall within allowed range");
+
+        // tslint:disable-next-line:no-magic-numbers
+        if (timeout < 50 || timeout > 1500) throw new Error("Timeout does not fall within allowed range");
+
     }
 
     /**
