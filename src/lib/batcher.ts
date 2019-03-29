@@ -6,7 +6,7 @@
 
 import { IBatchesContainItems, IBatchPushError, IBatchRequestsOptions, IGetDataCallback, IMappingFunction, IPromisesInFlight } from "../domain";
 import Batch from "./batch";
-import { FlattenArray } from "./utils";
+import { ConvertToArray, FlattenArray } from "./utils";
 
 /**
  *
@@ -106,7 +106,9 @@ export default class Batcher<Input, PreTransform, Output> {
      */
     public async makeRequest(input: Input[] | Input): Promise<Output[]> {
 
-        input = this._validateMakeRequest(input);
+        input = ConvertToArray(input);
+
+        this._validateMakeRequest(input);
 
         const { itemsToGet, promisesToWaitFor } = this._getPromisesForItemsInFlight(input);
 
@@ -320,21 +322,14 @@ export default class Batcher<Input, PreTransform, Output> {
      * @throws {Error} If input parameter is undefined
      * @throws {Error} If input parameter is not of the correct type
      * @throws {Error} If input parameter is an array and has length of 0
-     * @todo Move the array conversion to a seperate function as function should return void
      * @private
      * @param {(Input[] | Input)} input Input item(s) to be validated
      * @returns {Input[]} Input items that have been converted to array
      * @memberof Batcher
      */
-    private _validateMakeRequest(input: Input[] | Input): Input[] {
+    private _validateMakeRequest(input: Input[]): Input[] {
 
-        if (input === undefined) throw new Error("No input data provided");
-
-        if (!Array.isArray(input) && !["bigint", "number", "string"].includes(typeof input)) throw new Error("Input data must be string, number or bigint");
-
-        if (!Array.isArray(input)) input = [input];
-
-        if (input.length === 0 ) throw new Error("No input data provided");
+        if (input === undefined || input.length === 0 ) throw new Error("No input data provided");
 
         return input;
 

@@ -5,17 +5,53 @@ import Batch from "../src/lib/batch";
 
 describe("Single Batch", () => {
 
-    test("Should create a simple instance", () => {
+    describe("Should create ", () => {
 
-        const batch = new Batch(1, () => [null], 10);
+        test("A simple instance", () => {
 
-        expect(batch).toBeInstanceOf(Batch);
+            const batch = new Batch(1, () => [null], 10);
 
-        expect(batch.items).toBeInstanceOf(Array);
+            expect(batch).toBeInstanceOf(Batch);
 
-        expect(batch.items).toHaveLength(0);
+            expect(batch.items).toBeInstanceOf(Array);
 
-        expect(batch.response).toBeInstanceOf(Promise);
+            expect(batch.items).toHaveLength(0);
+
+            expect(batch.response).toBeInstanceOf(Promise);
+
+        });
+
+        test("A simple instance with initial items", () => {
+
+            const batch = new Batch(1, () => [null], 10, 5000, [1, 2, 3]);
+
+            expect(batch).toBeInstanceOf(Batch);
+
+            expect(batch.items).toBeInstanceOf(Array);
+
+            expect(batch.items).toHaveLength(3);
+
+            expect(batch.items).toEqual([1, 2, 3]);
+
+            expect(batch.response).toBeInstanceOf(Promise);
+
+        });
+
+        test("A simple instance with a single initial item", () => {
+
+            const batch = new Batch(1, () => [null], 10, 5000, 2);
+
+            expect(batch).toBeInstanceOf(Batch);
+
+            expect(batch.items).toBeInstanceOf(Array);
+
+            expect(batch.items).toHaveLength(1);
+
+            expect(batch.items).toEqual([2]);
+
+            expect(batch.response).toBeInstanceOf(Promise);
+
+        });
 
     });
 
@@ -77,6 +113,89 @@ describe("Single Batch", () => {
                 expect(batch.items).toHaveLength(1);
 
                 expect(batch.items[0]).toBe("item1");
+
+            });
+
+            test("The `Contains` function returns the correct data with the `included` type", () => {
+
+                expect(batch.checkIfBatchContains(["item1"], "included")).toBeInstanceOf(Array);
+
+                expect(batch.checkIfBatchContains(["item1"], "included")).toHaveLength(1);
+
+                expect(batch.checkIfBatchContains(["item1"], "included")).toEqual(["item1"]);
+
+                expect(batch.checkIfBatchContains(["item2"], "included")).toBeInstanceOf(Array);
+
+                expect(batch.checkIfBatchContains(["item2"], "included")).toHaveLength(0);
+
+                expect(batch.checkIfBatchContains(["item2"], "included")).toEqual([]);
+
+                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toBeInstanceOf(Array);
+
+                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toHaveLength(1);
+
+                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toEqual(["item1"]);
+
+            });
+
+            test("The `Contains` function returns the correct data with the `excluded` type", () => {
+
+                expect(batch.checkIfBatchContains(["item1"], "excluded")).toBeInstanceOf(Array);
+
+                expect(batch.checkIfBatchContains(["item1"], "excluded")).toHaveLength(0);
+
+                expect(batch.checkIfBatchContains(["item1"], "excluded")).toEqual([]);
+
+                expect(batch.checkIfBatchContains(["item2"], "excluded")).toBeInstanceOf(Array);
+
+                expect(batch.checkIfBatchContains(["item2"], "excluded")).toHaveLength(1);
+
+                expect(batch.checkIfBatchContains(["item2"], "excluded")).toEqual(["item2"]);
+
+                expect(batch.checkIfBatchContains(["item1", "item2"], "excluded")).toBeInstanceOf(Array);
+
+                expect(batch.checkIfBatchContains(["item1", "item2"], "excluded")).toHaveLength(1);
+
+                expect(batch.checkIfBatchContains(["item1", "item2"], "excluded")).toEqual(["item2"]);
+
+            });
+
+        });
+
+        describe("When a single element is pushed", () => {
+
+            const batch = new Batch(100, () => [null]);
+            batch.pushItemToBatch("item1");
+
+            test("The pushed item exists in `items` correctly", () => {
+
+                expect(batch.items).toBeInstanceOf(Array);
+
+                expect(batch.items).toHaveLength(1);
+
+                expect(batch.items[0]).toBe("item1");
+
+            });
+
+            test("The `Contains` function returns the correct data if passed a single element", () => {
+
+                expect(batch.checkIfBatchContains("item1", "included")).toBeInstanceOf(Array);
+
+                expect(batch.checkIfBatchContains("item1", "included")).toHaveLength(1);
+
+                expect(batch.checkIfBatchContains("item1", "included")).toEqual(["item1"]);
+
+                expect(batch.checkIfBatchContains("item2", "included")).toBeInstanceOf(Array);
+
+                expect(batch.checkIfBatchContains("item2", "included")).toHaveLength(0);
+
+                expect(batch.checkIfBatchContains("item2", "included")).toEqual([]);
+
+                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toBeInstanceOf(Array);
+
+                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toHaveLength(1);
+
+                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toEqual(["item1"]);
 
             });
 

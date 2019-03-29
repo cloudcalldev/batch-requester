@@ -5,6 +5,7 @@
  */
 
 import { IBatchPushError, IGetDataCallback, IProcessFailure, IProcessResponse, IValidatedPushItems } from "../domain";
+import { ConvertToArray } from "./utils";
 
 /**
  * @since 0.0.1
@@ -116,7 +117,6 @@ export default class Batch<Input, PreTransform> {
      * @param {Input[]} [initialItems=[]] The initial items to start the batch with
      * @todo Move parameters to an opts object
      * @todo Move default values to a configuration file
-     * @todo Allow initialItems to be a single item
      * @todo Set a minimum/maximum value that can be passed to maxSize
      * @todo Set a minimum/maximum value that can be passed to maxDataFetchTime
      * @todo Set a minimum/maximum value that can be passed to timeout
@@ -127,8 +127,10 @@ export default class Batch<Input, PreTransform> {
         dataFunction: IGetDataCallback<Input, PreTransform>,
         maxSize: number = 1000,
         maxDataFetchTime: number = 1000,
-        initialItems: Input[] = [],
+        initialItems: Input | Input[] = [],
     ) {
+
+        initialItems = ConvertToArray(initialItems);
 
         this._validateConstructParameters(dataFunction);
 
@@ -172,14 +174,15 @@ export default class Batch<Input, PreTransform> {
      * @summary Function that takes a simple input that is to be added to the current batch
      * @description This function takes an array of items as a parameter. When called, it clears the timeout, validates the input and then pushes items not already in
      * the batch items array, into the array.
-     * @todo Allow input parameter to be a single item
      * @param {Input[]} items Array of items to be pushed into the current batch
      * @returns {Array<IBatchPushError<Input>>} An array that contains all encountered errors, when pushing into batch
      * @memberof Batch
      */
-    public pushItemToBatch(items: Input[]): Array<IBatchPushError<Input>> {
+    public pushItemToBatch(items: Input | Input[]): Array<IBatchPushError<Input>> {
 
         this._resetTimeout();
+
+        items = ConvertToArray(items);
 
         const { errors, itemsToPush } = this._validatePushParameters([...new Set(items)]);
 
@@ -196,14 +199,15 @@ export default class Batch<Input, PreTransform> {
      * @description The function accept two parameters, the first is an array of items to check if exists in the current list of items. The second parameter is for the
      * return value format. If set to included, the function will return all items that exist in both arrays. If set to excluded, the function will return with items
      * that are included in the input parameter but not in the items array.
-     * @todo Allow input parameter to be a single item
      * @todo Move type to a boolean value, rather than string
      * @param {Input[]} input An array of items to check the batch items against
      * @param {(("included" | "excluded"))} [type="included"] The type of results to be returned. See description for more details
      * @returns {Input[]} An array of items, dependant on the type selected
      * @memberof Batch
      */
-    public checkIfBatchContains(input: Input[], type: ("included" | "excluded") = "included"): Input[] {
+    public checkIfBatchContains(input: Input | Input[], type: ("included" | "excluded") = "included"): Input[] {
+
+        input = ConvertToArray(input);
 
         switch (type) {
 
@@ -229,7 +233,6 @@ export default class Batch<Input, PreTransform> {
      * @throws {Error} If input parameter is an empty array
      * @throws {Error} If batch length limit has been reached
      * @throws {Error} If batch is not accepting new items
-     * @todo Allow items parameter to be single element
      * @todo Remove initial batch length limit check and run this within the individual checks
      * @private
      * @param {Input[]} items An array of items to push into the batch
