@@ -9,7 +9,7 @@ describe("Single Batch", () => {
 
         test("A simple instance", () => {
 
-            const batch = new Batch(1, () => [null], 10);
+            const batch = new Batch(250, () => [null], 10);
 
             expect(batch).toBeInstanceOf(Batch);
 
@@ -23,7 +23,7 @@ describe("Single Batch", () => {
 
         test("A simple instance with initial items", () => {
 
-            const batch = new Batch(1, () => [null], 10, 5000, [1, 2, 3]);
+            const batch = new Batch(250, () => [null], 10, 5000, [1, 2, 3]);
 
             expect(batch).toBeInstanceOf(Batch);
 
@@ -39,7 +39,7 @@ describe("Single Batch", () => {
 
         test("A simple instance with a single initial item", () => {
 
-            const batch = new Batch(1, () => [null], 10, 5000, 2);
+            const batch = new Batch(250, () => [null], 10, 5000, 2);
 
             expect(batch).toBeInstanceOf(Batch);
 
@@ -58,7 +58,26 @@ describe("Single Batch", () => {
     describe("Should throw correct constructor error", () => {
 
         test("If the Data Function is not provided", () => {
-            expect(() => new Batch(1, null!, 10)).toThrow(new Error("Data Function must be provided"));
+            expect(() => new Batch(250, null!, 10)).toThrow(new Error("Data Function must be provided"));
+        });
+
+        test("If the Data Function is not a function", () => {
+            expect(() => new Batch(250, true as any, 10)).toThrow(new Error("Data Function must be a function"));
+        });
+
+        test("If the max size is not in range", () => {
+            expect(() => new Batch(250, () => [null], 1)).toThrow(new Error("Max size does not fall within allowed range"));
+            expect(() => new Batch(250, () => [null], 5000)).toThrow(new Error("Max size does not fall within allowed range"));
+        });
+
+        test("If the max data fetch time is not in range", () => {
+            expect(() => new Batch(250, () => [null], 10, 100)).toThrow(new Error("Max Data Fetch Time does not fall within allowed range"));
+            expect(() => new Batch(250, () => [null], 10, 50000)).toThrow(new Error("Max Data Fetch Time does not fall within allowed range"));
+        });
+
+        test("If the timeout is not in range", () => {
+            expect(() => new Batch(1, () => [null], 10)).toThrow(new Error("Timeout does not fall within allowed range"));
+            expect(() => new Batch(2000, () => [null], 10)).toThrow(new Error("Timeout does not fall within allowed range"));
         });
 
     });
@@ -592,7 +611,7 @@ describe("Single Batch", () => {
 
             expect(batch.items).toEqual(["item1"]);
 
-        })
+        });
 
         test("Mixed in with good data", () => {
 
