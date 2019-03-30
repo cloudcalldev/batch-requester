@@ -1,5 +1,6 @@
-import Batcher from "./lib/batcher";
-import BatcherContainer from "./lib/batcherContainer";
+import { Batch, Batcher, BatcherContainer } from "./lib/batch";
+
+export { Batcher, BatcherContainer, Batch };
 
 export default {
     Batcher,

@@ -4,8 +4,8 @@
  * @license MIT
  */
 
-import { IBatchPushError, IGetDataCallback, IProcessFailure, IProcessResponse, IValidatedPushItems } from "../domain";
-import { ConvertToArray } from "./utils";
+import { IBatchPushError, IGetDataCallback, IProcessFailure, IProcessResponse, IValidatedPushItems } from "../../domain";
+import { ConvertToArray } from "../utils";
 
 /**
  * @since 0.0.1
@@ -15,7 +15,7 @@ import { ConvertToArray } from "./utils";
  * @template Input The input type of items that is going to be pushed into the batch
  * @template PreTransform The type of data that the data function responds with
  */
-export default class Batch<Input, PreTransform> {
+export class Batch<Input, PreTransform> {
 
     /**
      *

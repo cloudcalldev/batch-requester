@@ -1,8 +1,8 @@
 // tslint:disable:no-magic-numbers
 // tslint:disable:no-string-literal
+// tslint:disable:max-file-line-count
 
-import Batch from "../src/lib/batch";
-import Batcher from "../src/lib/batcher";
+import { Batch, Batcher } from "../src/lib/batch";
 
 describe("Request Container", () => {
 

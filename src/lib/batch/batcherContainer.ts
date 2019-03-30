@@ -4,7 +4,7 @@
  * @license MIT
  */
 
-import Batcher from "./batcher";
+import { Batcher } from "./batcher";
 
 /**
  *
@@ -12,7 +12,7 @@ import Batcher from "./batcher";
  * @export
  * @class BatcherContainer
  */
-export default class BatcherContainer {
+export class BatcherContainer {
 
     /**
      *

@@ -4,9 +4,9 @@
  * @license MIT
  */
 
-import { IBatchesContainItems, IBatchPushError, IBatchRequestsOptions, IGetDataCallback, IMappingFunction, IPromisesInFlight } from "../domain";
-import Batch from "./batch";
-import { ConvertToArray, FlattenArray } from "./utils";
+import { IBatchesContainItems, IBatchPushError, IBatchRequestsOptions, IGetDataCallback, IMappingFunction, IPromisesInFlight } from "../../domain";
+import { ConvertToArray, FlattenArray } from "../utils";
+import { Batch } from "./batch";
 
 /**
  *
@@ -17,7 +17,7 @@ import { ConvertToArray, FlattenArray } from "./utils";
  * @template PreTransform The type of data that the data function responds with
  * @template Output The type of data that the mapping function responds with
  */
-export default class Batcher<Input, PreTransform, Output> {
+export class Batcher<Input, PreTransform, Output> {
 
     /**
      *

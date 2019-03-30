@@ -1,7 +1,7 @@
 // tslint:disable:no-magic-numbers
 // tslint:disable:no-non-null-assertion
 
-import Batch from "../src/lib/batch";
+import { Batch } from "../src/lib/batch";
 
 describe("Single Batch", () => {
 
