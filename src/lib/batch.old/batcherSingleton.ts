@@ -4,7 +4,7 @@
  * @license MIT
  */
 
-import { Batcher } from "./batcher";
+import { AutoBatcher } from "./autoBatcher";
 
 /**
  *
@@ -12,35 +12,35 @@ import { Batcher } from "./batcher";
  * @export
  * @class BatcherContainer
  */
-export class BatcherContainer {
+export class BatcherSingleton {
 
     /**
      *
      * @summary Singleton Instance of container
      * @private
      * @static
-     * @type {BatcherContainer}
+     * @type {BatcherSingleton}
      * @memberof BatcherContainer
      */
-    private static _instance: BatcherContainer;
+    private static _instance: BatcherSingleton;
 
     /**
      *
      * @summary The object that holds all of the request containers
-     * @type {{[key: string]: Batcher<any, any, any>}}
+     * @type {{[key: string]: AutoBatcher<any, any, any>}}
      * @memberof BatcherContainer
      */
-    public requests: {[key: string]: Batcher<any, any, any>} = {};
+    public requests: {[key: string]: AutoBatcher<any, any, any>} = {};
 
     /**
      *
      * @summary Adds a new request container to the singleton instance
      * @param {string} name Accessor name of the request container
-     * @param {Batcher<any, any, any>} batcher Batcher to be passed through
-     * @returns {Batcher<any, any, any>} Newly created batcher
+     * @param {AutoBatcher<any, any, any>} batcher Batcher to be passed through
+     * @returns {AutoBatcher<any, any, any>} Newly created batcher
      * @memberof BatcherContainer
      */
-    public addRequest(name: string, batcher: Batcher<any, any, any>): Batcher<any, any, any> {
+    public addRequest(name: string, batcher: AutoBatcher<any, any, any>): AutoBatcher<any, any, any> {
 
         if (!this.requests[name]) {
             this.requests[name] = batcher;

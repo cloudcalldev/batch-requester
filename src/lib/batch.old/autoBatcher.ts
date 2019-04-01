@@ -4,9 +4,14 @@
  * @license MIT
  */
 
-import { IBatchesContainItems, IBatchPushError, IBatchRequestsOptions, IGetDataCallback, IMappingFunction, IPromisesInFlight } from "../../domain";
+import {
+    IBatchesContainItems,
+    IBatchPushError,
+    IBatchRequestsOptions,
+} from "../../domain";
 import { ConvertToArray, FlattenArray } from "../utils";
-import { Batch } from "./batch";
+import { BatchesSet } from "./batchesSet";
+import { SingleBatch } from "./singleBatch";
 
 /**
  *
@@ -17,80 +22,15 @@ import { Batch } from "./batch";
  * @template PreTransform The type of data that the data function responds with
  * @template Output The type of data that the mapping function responds with
  */
-export class Batcher<Input, PreTransform, Output> {
+export class AutoBatcher<Input, PreTransform, Output> extends BatchesSet<Input, PreTransform, Output> {
 
-    /**
-     *
-     * @summary The number of ms to wait for the _waitTimeout setTimeout before processing begins
-     * @private
-     * @type {number}
-     * @memberof Batch
-     */
-    private _delayBetweenRequests: number;
+    constructor(
+        protected _opts: IBatchRequestsOptions<Input, PreTransform, Output>,
+    ) {
 
-    /**
-     *
-     * @summary Reference to the custom provided mapping function
-     * @private
-     * @type {IGetDataCallback<Input, PreTransform>}
-     * @memberof Batch
-     */
-    private _mappingFunction: IMappingFunction<Input, PreTransform, Output>;
+        super(_opts);
 
-    /**
-     *
-     * @summary Reference to the custom provided data function
-     * @private
-     * @type {IGetDataCallback<Input, PreTransform>}
-     * @memberof Batch
-     */
-    private _dataFunction: IGetDataCallback<Input, PreTransform>;
-
-    /**
-     *
-     * @summary The maximum size that the batch items array can grow to
-     * @private
-     * @type {number}
-     * @memberof Batch
-     */
-    private _maxSize: number;
-
-    /**
-     *
-     * @summary A simple number of ms that is the maximum amount of time the data function can take before timing out
-     * @private
-     * @type {number}
-     * @memberof Batch
-     */
-    private _maxDataFetchTime: number;
-
-    /**
-     *
-     * @summary Array of batches
-     * @todo Move array to be set/weakSet
-     * @private
-     * @type {Array<Batch<Input, PreTransform>>}
-     * @memberof Batcher
-     */
-    private _batches: Array<Batch<Input, PreTransform>>;
-
-    constructor(opts: IBatchRequestsOptions<Input, PreTransform, Output>) {
-
-        const DELAY_BETWEEN_REQUESTS = 100;
-        const MAX_SIZE = 1000;
-        const MAX_TIME = 5000;
-
-        this._validateConstructorParameters(opts);
-
-        this._delayBetweenRequests = opts.delay || DELAY_BETWEEN_REQUESTS;
-
-        this._maxSize = opts.maxBatchSize || MAX_SIZE;
-        this._maxDataFetchTime = opts.maxTime || MAX_TIME;
-
-        this._dataFunction = opts.getDataCallback;
-        this._mappingFunction = opts.mappingCallback;
-
-        this._batches = [];
+        this._validateConstructorParameters(_opts);
 
     }
 
@@ -110,52 +50,32 @@ export class Batcher<Input, PreTransform, Output> {
 
         this._validateMakeRequest(input);
 
-        const { itemsToGet, promisesToWaitFor } = this._getPromisesForItemsInFlight(input);
+        const mappedResponse = this._opts.mappingCallback(input, await this._generateResponse(input));
+
+        return mappedResponse.map(({ value }: any) => value);
+
+    }
+
+    private async _generateResponse(input: Input[]): Promise<PreTransform[]> {
+
+        const { itemsToGet, promisesToWaitFor } = this._reduceItemsToItemsToGet(input);
 
         let promiseAll = [...promisesToWaitFor];
 
         if (itemsToGet.length) promiseAll = promiseAll.concat(this._getBatchPromises(itemsToGet));
 
-        const RESPONSE = await Promise.all(promiseAll);
-
-        return this._mappingFunction(input, FlattenArray<PreTransform>(RESPONSE));
+        return FlattenArray<PreTransform>(await Promise.all(promiseAll));
 
     }
 
-    /**
-     *
-     * @summary Creates a batch and updates latest batch
-     * @description Function simply creates a new batch based on the constructor arguments and then pushes it into the batches array ready for use. Once
-     * this is completed, the newly created batch is then returned.
-     * @todo Move the Batch type to be injected into the constructor
-     * @private
-     * @returns {Batch<Input, PreTransform>} The newly created batch
-     * @memberof Batcher
-     */
-    private _createNewBatch(): Batch<Input, PreTransform> {
+    private _reduceItemsToItemsToGet(input: Input[]) {
 
-        const NEW_BATCH = new Batch(this._delayBetweenRequests, this._dataFunction, this._maxSize, this._maxDataFetchTime);
+        const { itemsNotInFlight, promisesToWaitFor } = this._getPromisesForItemsInFlight(input);
 
-        this._batches.push(NEW_BATCH);
-
-        return NEW_BATCH;
-
-    }
-
-    /**
-     *
-     * @summary Returns the latest batch
-     * @description Gets the last item index in the batches array and then returns the said index item
-     * @readonly
-     * @private
-     * @type {(Batch<Input, PreTransform> | boolean)}
-     * @memberof Batcher
-     */
-    private get _latestBatch(): Batch<Input, PreTransform> | boolean {
-
-        const LENGTH = this._batches.length;
-
-        return LENGTH > 0 ? this._batches[LENGTH - 1] : false;
+        return {
+            itemsToGet: itemsNotInFlight,
+            promisesToWaitFor,
+        };
 
     }
 
@@ -174,7 +94,7 @@ export class Batcher<Input, PreTransform, Output> {
 
         const BATCHES: any[] = [];
 
-        this._batches.forEach((batch: Batch<Input, PreTransform>) => batch.checkIfBatchContains(input, "included").forEach((elem: Input) => BATCHES.push({
+        this._batches.forEach((batch: SingleBatch<Input, PreTransform>) => batch.checkIfBatchContains(input, "included").forEach((elem: Input) => BATCHES.push({
             batch: batch.response,
             item: elem,
         })));
@@ -224,7 +144,7 @@ export class Batcher<Input, PreTransform, Output> {
      */
     private _allocateRequestsToBatches(input: Input[]): Array<Promise<PreTransform[]>> {
 
-        let batch = this._latestBatch as Batch<Input, PreTransform>;
+        let batch = this._latestBatch as SingleBatch<Input, PreTransform>;
 
         if (!batch) batch = this._createNewBatch();
 
@@ -295,21 +215,21 @@ export class Batcher<Input, PreTransform, Output> {
      * secondly a simple array of new items to get
      * @memberof Batcher
      */
-    private _getPromisesForItemsInFlight(input: Input[]): IPromisesInFlight<Input, PreTransform> {
+    private _getPromisesForItemsInFlight(input: Input[]): any {
 
         const IN_FLIGHT_ITEMS = this._checkIfLatestBatchContains(input);
         const PROMISES_TO_WAIT_FOR = new Set();
 
         // Input is cloned, so filter can be applied without removing original elements
-        let itemsToGet = [...input];
+        let itemsNotInFlight = [...input];
 
         IN_FLIGHT_ITEMS.forEach((inFlightItem) => {
             PROMISES_TO_WAIT_FOR.add(inFlightItem.batch);
-            itemsToGet = itemsToGet.filter((item) => inFlightItem.item !== item);
+            itemsNotInFlight = itemsNotInFlight.filter((item) => inFlightItem.item !== item);
         });
 
         return {
-            itemsToGet,
+            itemsNotInFlight,
             promisesToWaitFor: PROMISES_TO_WAIT_FOR,
         };
 
@@ -327,12 +247,8 @@ export class Batcher<Input, PreTransform, Output> {
      * @returns {Input[]} Input items that have been converted to array
      * @memberof Batcher
      */
-    private _validateMakeRequest(input: Input[]): Input[] {
-
+    private _validateMakeRequest(input: Input[]): void {
         if (input === undefined || input.length === 0 ) throw new Error("No input data provided");
-
-        return input;
-
     }
 
 }

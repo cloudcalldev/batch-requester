@@ -6,6 +6,7 @@
 
 import { IBatchPushError, IGetDataCallback, IProcessFailure, IProcessResponse, IValidatedPushItems } from "../../domain";
 import { ConvertToArray } from "../utils";
+import { SingleBatchItems } from "./singleBatchItems";
 
 /**
  * @since 0.0.1
@@ -15,7 +16,7 @@ import { ConvertToArray } from "../utils";
  * @template Input The input type of items that is going to be pushed into the batch
  * @template PreTransform The type of data that the data function responds with
  */
-export class Batch<Input, PreTransform> {
+export class SingleBatch<Input, PreTransform> {
 
     /**
      *
@@ -23,43 +24,43 @@ export class Batch<Input, PreTransform> {
      * @private
      * @todo Update to be Set rather than Array
      * @type {Input[]}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
-    private _items: Input[];
+    private _batchItems: SingleBatchItems<Input>;
 
     /**
      *
      * @summary Reference to the timeout that determins whether the batch should start processing or not
      * @private
      * @type {NodeJS.Timeout}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
-    private _waitTimeout!: NodeJS.Timeout;
+    private _waitForNewItemTimeout!: NodeJS.Timeout;
 
     /**
      *
-     * @summary The number of ms to wait for the _waitTimeout setTimeout before processing begins
+     * @summary The number of ms to wait for the _waitForNewItemTimeout setTimeout before processing begins
      * @private
      * @type {number}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
-    private _delayBetweenRequests: number;
+    private _waitForNewItemTimeoutValue: number;
 
     /**
      *
      * @summary A simple boolean value to whether the batch is currently accepting new items
      * @private
      * @type {boolean}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
-    private _acceptingNewItems: boolean;
+    private _isAcceptingNewItems: boolean = true;
 
     /**
      *
      * @summary This is the store of the result promise, that can be awaited and will resolve/reject once the data function is called after timing out
      * @private
      * @type {Promise<PreTransform[]>}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     private _resultPromise!: Promise<PreTransform[]>;
 
@@ -68,16 +69,16 @@ export class Batch<Input, PreTransform> {
      * @summary The maximum size that the batch items array can grow to
      * @private
      * @type {number}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
-    private _maxSize: number;
+    private _maximumBatchSize: number;
 
     /**
      *
      * @summary Reference to the custom provided data function
      * @private
      * @type {IGetDataCallback<Input, PreTransform>}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     private _dataFunction: IGetDataCallback<Input, PreTransform>;
 
@@ -86,7 +87,7 @@ export class Batch<Input, PreTransform> {
      * @summary Globally available resolve function from the result promise construct
      * @private
      * @type {IProcessResponse<PreTransform>}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     private _processResponse!: IProcessResponse<PreTransform>;
 
@@ -95,7 +96,7 @@ export class Batch<Input, PreTransform> {
      * @summary Globally available reject function from the result promise construct
      * @private
      * @type {IProcessFailure}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     private _processFailure!: IProcessFailure;
 
@@ -104,7 +105,7 @@ export class Batch<Input, PreTransform> {
      * @summary A simple number of ms that is the maximum amount of time the data function can take before timing out
      * @private
      * @type {number}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     private _maxDataFetchTime: number;
 
@@ -117,7 +118,7 @@ export class Batch<Input, PreTransform> {
      * @param {Input[]} [initialItems=[]] The initial items to start the batch with
      * @todo Move parameters to an opts object
      * @todo Move default values to a configuration file
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     constructor(
         timeout: number,
@@ -127,15 +128,12 @@ export class Batch<Input, PreTransform> {
         initialItems: Input | Input[] = [],
     ) {
 
-        initialItems = ConvertToArray(initialItems);
-
         this._validateConstructParameters(dataFunction, maxSize, maxDataFetchTime, timeout);
 
-        this._items = initialItems;
-        this._delayBetweenRequests = timeout;
-        this._acceptingNewItems = true;
+        this._batchItems = new SingleBatchItems(ConvertToArray(initialItems));
+        this._waitForNewItemTimeoutValue = timeout;
         this._dataFunction = dataFunction;
-        this._maxSize = maxSize;
+        this._maximumBatchSize = maxSize;
         this._maxDataFetchTime = maxDataFetchTime;
 
         this._getResultPromise();
@@ -148,10 +146,10 @@ export class Batch<Input, PreTransform> {
      * @description Returns the this._items variable
      * @readonly
      * @type {Input[]}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     public get items(): Input[] {
-        return this._items;
+        return this._batchItems.values;
     }
 
     /**
@@ -160,7 +158,7 @@ export class Batch<Input, PreTransform> {
      * @description Returns the this._resultPromise variable
      * @readonly
      * @type {Promise<PreTransform[]>}
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     public get response(): Promise<PreTransform[]> {
         return this._resultPromise;
@@ -173,7 +171,7 @@ export class Batch<Input, PreTransform> {
      * the batch items array, into the array.
      * @param {Input[]} items Array of items to be pushed into the current batch
      * @returns {Array<IBatchPushError<Input>>} An array that contains all encountered errors, when pushing into batch
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     public pushItemToBatch(items: Input | Input[]): Array<IBatchPushError<Input>> {
 
@@ -183,41 +181,14 @@ export class Batch<Input, PreTransform> {
 
         const { errors, itemsToPush } = this._validatePushParameters([...new Set(items)]);
 
-        // Set the batch items to be: Current Batch Items + New Batch Items that do not already Exist
-        this._items = this._items.concat(this.checkIfBatchContains(itemsToPush, "excluded"));
+        this._batchItems.addItems(itemsToPush);
 
         return errors;
 
     }
 
-    /**
-     *
-     * @summary A simple function that compares two arrays; an input array and the items array.
-     * @description The function accept two parameters, the first is an array of items to check if exists in the current list of items. The second parameter is for the
-     * return value format. If set to included, the function will return all items that exist in both arrays. If set to excluded, the function will return with items
-     * that are included in the input parameter but not in the items array.
-     * @todo Move type to a boolean value, rather than string
-     * @param {Input[]} input An array of items to check the batch items against
-     * @param {(("included" | "excluded"))} [type="included"] The type of results to be returned. See description for more details
-     * @returns {Input[]} An array of items, dependant on the type selected
-     * @memberof Batch
-     */
     public checkIfBatchContains(input: Input | Input[], type: ("included" | "excluded") = "included"): Input[] {
-
-        input = ConvertToArray(input);
-
-        switch (type) {
-
-            // Items that exist in both arrays
-            case "included":
-                return input.filter((item: Input) => this.items.indexOf(item) > -1);
-
-            // Items that exist in the input array but not in the batch items array
-            case "excluded":
-                return input.filter((item: Input) => this.items.indexOf(item) === -1);
-
-        }
-
+        return this._batchItems.checkIfBatchContains(input, type);
     }
 
     /**
@@ -234,7 +205,7 @@ export class Batch<Input, PreTransform> {
      * @private
      * @param {Input[]} items An array of items to push into the batch
      * @returns {IValidatedPushItems<Input>} An object that contains that items that have been pushed with success and items that have errors with the corresponding items
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     private _validatePushParameters(items: Input[]): IValidatedPushItems<Input> {
 
@@ -242,9 +213,9 @@ export class Batch<Input, PreTransform> {
 
         if (!items || items.length === 0) throw new Error("Cannot Push Empty Value To Batch");
 
-        if (this._items.length === this._maxSize) throw new Error("Batch Length Limit Reached");
+        if (this._batchItems.length === this._maximumBatchSize) throw new Error("Batch Length Limit Reached");
 
-        if (!this._acceptingNewItems) throw new Error("Cannot push items to a request that has already started");
+        if (!this._isAcceptingNewItems) throw new Error("Cannot push items to a request that has already started");
 
         const ERRORS = items.map((item, index) => {
 
@@ -252,7 +223,7 @@ export class Batch<Input, PreTransform> {
 
             if (!["bigint", "string", "number"].includes(typeof item)) error = "Item is not the correct type. Accepted types are `bigint`, `string`, `number`";
 
-            else if (index >= (this._maxSize - this._items.length) || index > this._maxSize) error = "Batch maximum size has been reached";
+            else if (index >= (this._maximumBatchSize - this._batchItems.length) || index > this._maximumBatchSize) error = "Batch maximum size has been reached";
 
             if (error) {
                 return {
@@ -280,7 +251,7 @@ export class Batch<Input, PreTransform> {
      * @throws {Error} Data Function must be provided
      * @private
      * @param {IGetDataCallback<Input, PreTransform>} dataFunction The dataFunction to be passed in from the constructor
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     private _validateConstructParameters(dataFunction: IGetDataCallback<Input, PreTransform>, maxSize: number, maxDataFetchTime: number, timeout: number): void {
 
@@ -304,7 +275,7 @@ export class Batch<Input, PreTransform> {
      * @summary Creates and assigns promise to the class result promise variable
      * @description Creates a new promise that globally assigns the resolve and reject methods, for -calling within the process request function
      * @private
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     private _getResultPromise = (): Promise<PreTransform[]> => this._resultPromise = new Promise((resolve, reject) => {
         this._processResponse = resolve;
@@ -319,11 +290,11 @@ export class Batch<Input, PreTransform> {
      * is to protect the original request from timing out. The timeout period can be set as a custom parameter.
      * @async
      * @private
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     private _processRequest = async (): Promise<void> => {
 
-        this._acceptingNewItems = false;
+        this._isAcceptingNewItems = false;
 
         let hasTimedOut = false;
 
@@ -352,13 +323,13 @@ export class Batch<Input, PreTransform> {
      * @description Handles the time between recieving the last push item and then processing the data function. This clears the current timeout and then resets it to
      * start again.
      * @private
-     * @memberof Batch
+     * @memberof SingleBatch
      */
     private _resetTimeout(): void {
 
-        clearTimeout(this._waitTimeout);
+        clearTimeout(this._waitForNewItemTimeout);
 
-        this._waitTimeout = setTimeout(this._processRequest, this._delayBetweenRequests);
+        this._waitForNewItemTimeout = setTimeout(this._processRequest, this._waitForNewItemTimeoutValue);
 
     }
 

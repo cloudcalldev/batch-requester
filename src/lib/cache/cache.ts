@@ -17,6 +17,7 @@ export class Cache {
         this._buckets[name] = newBucket;
 
         return newBucket;
+
     }
 
     public getBucket = (name: string): CacheBucket => this._buckets[name] || this.addBucket(name);
