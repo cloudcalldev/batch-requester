@@ -1,47 +1,56 @@
-import { IBatchRequesterOptions } from "../../domain/batchRequesterOptions";
+import { IAutoBatcherCacheOptions, IAutoBatcherResponse } from "../../domain";
+import { ConvertToArray } from "../utils";
 import { AutoBatcher } from "./autoBatcher";
+import { Validate } from "./validate";
 
 export class AutoBatcherCache<I, P, O> extends AutoBatcher<I, P, O> {
 
     constructor(
-        protected _opts: IBatchRequesterOptions<I, P, O>,
+        protected _opts: IAutoBatcherCacheOptions<I, P, O>,
     ) {
         super(_opts);
     }
 
-    protected _setCacheItems(data: any[]): void {
+    public async makeRequest(input: I[] | I): Promise<O[]> {
 
-        const cache = this._opts.cache;
+        input = ConvertToArray(input);
 
-        if (cache) data.forEach((item) => cache.setItem(item.key, item.value));
+        Validate.AutoBatcherMakeRequest<I>(input);
+
+        const cachedValues: Array<IAutoBatcherResponse<I, O>> = this._checkCache(input);
+        const itemsToGet = cachedValues.length > 0 ? input.filter((inputItem: I) => !cachedValues.map(({ item }) => item).includes(inputItem)) : [...input];
+
+        let mappedResponse: Array<IAutoBatcherResponse<I, O>> = [];
+
+        if (itemsToGet.length > 0)  {
+
+            mappedResponse = this._opts.mappingCallback(input, await this._generateResponse(itemsToGet));
+
+            this._setCacheItems(mappedResponse);
+
+        }
+
+        if (cachedValues.length > 0) mappedResponse = mappedResponse.concat(cachedValues);
+
+        return mappedResponse.map(({value}: IAutoBatcherResponse<I, O>) => value);
 
     }
 
-    protected _checkCache(input: I[]): any {
+    protected _setCacheItems = (data: any[]): void => data.forEach(({item, value}) => this._opts.cache.setItem(item, value))
 
-        const CACHED_ITEMS: P[] = [];
-        let itemsNotInCache: I[] = [];
+    protected _checkCache(input: I[]): Array<IAutoBatcherResponse<I, O>> {
 
-        const cache = this._opts.cache;
+        const CACHED_ITEMS: Array<IAutoBatcherResponse<I, O>> = [];
 
-        if (cache) {
+        input.forEach((item) => {
 
-            input.forEach((item) => {
+            const value = this._opts.cache.getItem<O>(item);
 
-                const cachedValue = cache.getItem<P>(item);
+            if (value) CACHED_ITEMS.push({ item, value });
 
-                if (cachedValue) CACHED_ITEMS.push(cachedValue);
+        });
 
-                else itemsNotInCache.push(item);
-
-            });
-
-        } else itemsNotInCache = input;
-
-        return {
-            cachedItems: CACHED_ITEMS,
-            itemsNotInCache,
-        };
+        return CACHED_ITEMS;
 
     }
 

@@ -5,10 +5,10 @@ export class SingleBatchItems<I> {
     private _items: I[] = [];
 
     constructor(
-        initialItems: I[] = [],
-        public maximumLimit: number = 1000,
+        initialItems: I[] | I = [],
+        public maximumLimit: number,
     ) {
-        this.addItems(initialItems);
+        this.addItems(ConvertToArray(initialItems));
     }
 
     public addItems = (items: I[]): I[] => this._items = this._items.concat(this.checkIfBatchContains(items, false));

@@ -1,0 +1,12 @@
+export { IAutoBatcherCacheOptions } from "./IAutoBatcherCacheOptions";
+export { IAutoBatcherOptions } from "./IAutoBatcherOptions";
+export { IAutoBatcherResponse } from "./IAutoBatcherResponse";
+export { IBatchesContainItems } from "./IBatchesContainItems";
+export { IBatchPushError } from "./IBatchPushError";
+export { IBatchRequesterOptions } from "./IBatchRequesterOptions";
+export { IDataFunction } from "./IDataFunction";
+export { IItem } from "./IItem";
+export { IMappingCallback } from "./IMappingCallback";
+export { IResponseHandler } from "./IResponseHandler";
+export { ISingleBatchOptions } from "./ISingleBatchOptions";
+export { IValidatedPushItems } from "./IValidatedPushItems";

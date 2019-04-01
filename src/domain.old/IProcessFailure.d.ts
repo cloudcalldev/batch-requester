@@ -1,1 +1,0 @@
-export type IProcessFailure = (reason: Error) => void;

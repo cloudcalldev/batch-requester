@@ -1,4 +1,4 @@
-import { IAutoBatcherResponse, IBatchesContainItems, IBatchPushError, IBatchRequesterOptions, IInFlightPromises } from "../../domain/batchRequesterOptions";
+import { IAutoBatcherOptions, IAutoBatcherResponse, IBatchesContainItems, IBatchPushError } from "../../domain";
 import { ConvertToArray, FlattenArray } from "../utils";
 import { Batches } from "./batches";
 import { SingleBatch } from "./singleBatch";
@@ -7,7 +7,7 @@ import { Validate } from "./validate";
 export class AutoBatcher<I, P, O> extends Batches<I, P, O> {
 
     constructor(
-        protected _opts: IBatchRequesterOptions<I, P, O>,
+        protected _opts: IAutoBatcherOptions<I, P, O>,
     ) {
 
         super(_opts);
@@ -16,25 +16,27 @@ export class AutoBatcher<I, P, O> extends Batches<I, P, O> {
 
     }
 
-    public async makeRequest(input: I[] | I): Promise<Array<IAutoBatcherResponse<I, O>>> {
+    public async makeRequest(input: I[] | I): Promise<O[]> {
 
         input = ConvertToArray(input);
 
         Validate.AutoBatcherMakeRequest<I>(input);
 
-        return await this._generateResponse(input);
+        return this._opts.mappingCallback(input, await this._generateResponse(input)).map(({value}: IAutoBatcherResponse<I, O>) => value);
 
     }
 
-    private async _generateResponse(input: I[]): Promise<Array<IAutoBatcherResponse<I, O>>> {
+    protected async _generateResponse(input: I[]): Promise<P[]> {
 
-        const { itemsNotInFlight, promisesToWaitFor } = this._getPromisesForItemsInFlight(input);
+        const batchPromises: Array<IBatchesContainItems<I, P, O>> = this._checkIfLatestBatchContains(input);
+        const itemsCateredFor: Set<I> = new Set(batchPromises.map(({item}) => item));
+        let promiseAll: Array<Promise<P[]>> = [...new Set(batchPromises.map(({batch}) => batch))];
 
-        let promiseAll: Array<Promise<P[]>> = [...promisesToWaitFor];
+        input = input.filter((item) => !itemsCateredFor.has(item));
 
-        if (itemsNotInFlight.length) promiseAll = promiseAll.concat(this._getBatchPromises(itemsNotInFlight));
+        if (input.length) promiseAll = promiseAll.concat(this._getBatchPromises(input));
 
-        return FlattenArray<any>(await Promise.all(promiseAll));
+        return FlattenArray<P>(await Promise.all(promiseAll));
 
     }
 
@@ -84,20 +86,6 @@ export class AutoBatcher<I, P, O> extends Batches<I, P, O> {
             }
 
         }
-
-    }
-
-    private _getPromisesForItemsInFlight(input: I[]): IInFlightPromises<I, P, O> {
-
-        const promisesToWaitFor: Set<Promise<P[]>> = new Set();
-        let itemsNotInFlight: I[] = [...input];
-
-        this._checkIfLatestBatchContains(input).forEach(({batch, item}: IBatchesContainItems<I, P, O>) => {
-            promisesToWaitFor.add(batch);
-            itemsNotInFlight = itemsNotInFlight.filter((notInFlight: I) => item !== notInFlight);
-        });
-
-        return { itemsNotInFlight, promisesToWaitFor };
 
     }
 

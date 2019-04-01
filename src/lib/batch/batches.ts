@@ -1,4 +1,5 @@
-import { IBatchesContainItems, IBatchRequesterOptions } from "../../domain/batchRequesterOptions";
+import { IAutoBatcherOptions } from "../../domain";
+import { IBatchesContainItems } from "../../domain/IBatchesContainItems";
 import { SingleBatch } from "./singleBatch";
 
 export class Batches<I, P, O> {
@@ -6,12 +7,12 @@ export class Batches<I, P, O> {
     protected _batches: Array<SingleBatch<I, P, O>> = [];
 
     constructor(
-        protected _opts: IBatchRequesterOptions<I, P, O>,
+        protected _opts: IAutoBatcherOptions<I, P, O>,
     ) {}
 
     protected _checkIfLatestBatchContains(input: I[]): Array<IBatchesContainItems<I, P, O>> {
 
-        const BATCHES: any[] = [];
+        const BATCHES: Array<IBatchesContainItems<I, P, O>> = [];
 
         this._batches.forEach((batch: SingleBatch<I, P, O>) => batch.checkIfBatchContains(input).forEach((elem: I) => BATCHES.push({
             batch: batch.response,
@@ -34,7 +35,7 @@ export class Batches<I, P, O> {
 
     protected get _latestBatch(): SingleBatch<I, P, O> {
 
-        const LENGTH = this._batches.length;
+        const LENGTH: number = this._batches.length;
 
         return LENGTH > 0 ? this._batches[LENGTH - 1] : this._createNewBatch();
 

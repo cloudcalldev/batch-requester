@@ -1,9 +1,11 @@
-import { IBatchPushError, IBatchRequesterOptions, IValidatedPushItems } from "../../domain/batchRequesterOptions";
+import { IBatchPushError } from "../../domain/IBatchPushError";
+import { IBatchRequesterOptions } from "../../domain/IBatchRequesterOptions";
+import { IValidatedPushItems } from "../../domain/IValidatedPushItems";
 import { SingleBatchItems } from "./singleBatchItems";
 
 export class Validate {
 
-    private static defaults = {
+    public static defaults = {
         dataFunction: {
             errors: {
                 incorrectType: "Data Function must be a function",
@@ -12,23 +14,27 @@ export class Validate {
         },
         mappingCallback: {
             errors: {
-                incorrectType: "Data Function must be a function",
-                notProvided: "Data Function must be provided",
+                incorrectType: "Mapping Callback must be a function",
+                notProvided: "Mapping Callback must be provided",
             },
         },
         maxDataFetchTime: {
             errors: {
+                notProvided: "Max Data Fetch Time must be provided",
                 range: "Max Data Fetch Time does not fall within allowed range",
             },
             maximum: 30000,
             minimum: 500,
+            value: 15000,
         },
         maxSize: {
             errors: {
+                notProvided: "Max size must be provided",
                 range: "Max size does not fall within allowed range",
             },
             maximum: 1000,
             minimum: 5,
+            value: 1000,
         },
         options: {
             errors: {
@@ -37,10 +43,12 @@ export class Validate {
         },
         timeout: {
             errors: {
+                notProvided: "Timeout must be provided",
                 range: "Timeout does not fall within allowed range",
             },
             maximum: 1500,
             minimum: 50,
+            value: 250,
         },
     };
 
@@ -54,9 +62,15 @@ export class Validate {
 
         if (typeof opts.dataFunction !== "function") throw new Error(dataFunction.errors.incorrectType);
 
+        if (!opts.maxSize) throw new Error(maxSize.errors.notProvided);
+
         if (opts.maxSize < maxSize.minimum || opts.maxSize > maxSize.maximum) throw new Error(maxSize.errors.range);
 
+        if (!opts.maxDataFetchTime) throw new Error(maxDataFetchTime.errors.notProvided);
+
         if (opts.maxDataFetchTime < maxDataFetchTime.minimum || opts.maxDataFetchTime > maxDataFetchTime.maximum) throw new Error(maxDataFetchTime.errors.range);
+
+        if (!opts.timeout) throw new Error(timeout.errors.notProvided);
 
         if (opts.timeout < timeout.minimum || opts.timeout > timeout.maximum) throw new Error(timeout.errors.range);
 

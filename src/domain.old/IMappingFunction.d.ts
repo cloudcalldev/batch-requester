@@ -1,1 +1,0 @@
-export type IMappingFunction<T, S, R> = ( original: T[], response: S[] ) => R[];

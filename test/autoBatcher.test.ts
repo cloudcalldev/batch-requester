@@ -1,21 +1,20 @@
 // tslint:disable:no-magic-numbers
 // tslint:disable:no-string-literal
-// tslint:disable:max-file-line-count
-
-import { Batch, Batcher } from "../src/lib/batch";
+import { AutoBatcher } from "../src/lib/batch/autoBatcher";
+import { SingleBatch } from "../src/lib/batch/singleBatch";
 
 describe("Request Container", () => {
 
     test("Should create a basic instance", () => {
 
-        const container = new Batcher({
-            getDataCallback: () => [null],
+        const container = new AutoBatcher({
+            dataFunction: () => [null],
             mappingCallback: () => [null],
         });
 
-        expect(container).toBeInstanceOf(Batcher);
+        expect(container).toBeInstanceOf(AutoBatcher);
 
-        expect(container["_latestBatch"]).toBe(false);
+        expect(container["_latestBatch"]).toBeInstanceOf(SingleBatch);
 
     });
 
@@ -23,40 +22,40 @@ describe("Request Container", () => {
 
         test("If the data callback is not provided", () => {
 
-            expect(() => new Batcher({
+            expect(() => new AutoBatcher({
                 mappingCallback: () => [null],
-            } as any)).toThrowError(Error("Data Callback is required"));
+            } as any)).toThrowError(Error("Data Function must be provided"));
 
         });
 
         test("If the data callback is not a function", () => {
 
-            expect(() => new Batcher({
-                getDataCallback: ["test"],
+            expect(() => new AutoBatcher({
+                dataFunction: ["test"],
                 mappingCallback: () => [null],
-            } as any)).toThrowError(Error("Data Callback must be a function"));
+            } as any)).toThrowError(Error("Data Function must be a function"));
 
         });
 
         test("If the mapping callback is not provided", () => {
 
-            expect(() => new Batcher({
-                getDataCallback: () => [null],
-            } as any)).toThrowError(Error("Mapping Callback is required"));
+            expect(() => new AutoBatcher({
+                dataFunction: () => [null],
+            } as any)).toThrowError(Error("Mapping Callback must be provided"));
 
         });
 
         test("If the mapping callback is not a function", () => {
 
-            expect(() => new Batcher({
-                getDataCallback: () => [null],
+            expect(() => new AutoBatcher({
+                dataFunction: () => [null],
                 mappingCallback: ["test"],
             } as any)).toThrowError(Error("Mapping Callback must be a function"));
 
         });
 
         test("If no options are provided", () => {
-            expect(() => new Batcher(false as any)).toThrowError(Error("Options parameter is required"));
+            expect(() => new AutoBatcher(false as any)).toThrowError(Error("Options parameter is required"));
         });
 
     });
@@ -67,13 +66,13 @@ describe("Request Container", () => {
 
             expect.assertions(2);
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (x) => x,
             });
 
             await expect(container.makeRequest([1])).resolves.toEqual([1]);
-            expect((container["_latestBatch"] as Batch<any, any>).items).toEqual([1]);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>).items).toEqual([1]);
 
         });
 
@@ -81,8 +80,8 @@ describe("Request Container", () => {
 
             expect.assertions(1);
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (x) => x,
             });
 
@@ -90,23 +89,23 @@ describe("Request Container", () => {
 
         });
 
-        test("With a single element and transform correctly", async (done) => {
+        // test.todo("With a single element and transform correctly", async (done) => {
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
-                mappingCallback: (_x) => ["a"],
-            });
+        //     const container = new AutoBatcher({
+        //         dataFunction: (x) => x,
+        //         mappingCallback: (_x) => ["a"],
+        //     });
 
-            expect(container.makeRequest(1)).resolves.toEqual(["a"]).then(done);
+        //     expect(container.makeRequest(1)).resolves.toEqual(["a"]).then(done);
 
-        });
+        // });
 
         test("With mulitple item array", async (done) => {
 
             expect.assertions(1);
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (x) => x,
             });
 
@@ -118,8 +117,8 @@ describe("Request Container", () => {
 
             expect.assertions(1);
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (_x) => ["a"],
             });
 
@@ -133,8 +132,8 @@ describe("Request Container", () => {
 
             jest.useRealTimers();
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (x) => x,
             });
 
@@ -162,8 +161,8 @@ describe("Request Container", () => {
 
             jest.useRealTimers();
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (x) => ["a" + x],
             });
 
@@ -187,8 +186,8 @@ describe("Request Container", () => {
 
         test("With no data", () => {
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (x) => x,
             });
 
@@ -200,8 +199,8 @@ describe("Request Container", () => {
 
         test("With bad data", () => {
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (x) => x,
             });
 
@@ -218,8 +217,8 @@ describe("Request Container", () => {
             let mappingCallbackTimes = 0;
             let dataCallbackTimes = 0;
 
-            const container = new Batcher({
-                getDataCallback: (x) => {
+            const container = new AutoBatcher({
+                dataFunction: (x) => {
                     dataCallbackTimes++;
                     return x;
                 },
@@ -256,8 +255,8 @@ describe("Request Container", () => {
 
         test("Successfully", () => {
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (x) => x,
             });
 
@@ -269,7 +268,7 @@ describe("Request Container", () => {
 
             container.makeRequest(testArr);
 
-            const batch = (container["_latestBatch"] as Batch<any, any>);
+            const batch = (container["_latestBatch"] as SingleBatch<any, any, any>);
 
             expect(batch.items).toEqual(testArr);
 
@@ -277,14 +276,14 @@ describe("Request Container", () => {
 
         test("When there is no latest batch",  () => {
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (x) => x,
             });
 
-            const batch = (container["_latestBatch"] as Batch<any, any>);
+            const batch = (container["_latestBatch"] as SingleBatch<any, any, any>);
 
-            expect(batch).toBe(false);
+            expect(batch).toBeInstanceOf(SingleBatch);
 
         });
 
@@ -294,71 +293,71 @@ describe("Request Container", () => {
 
         test("And correctly return the newly created batch", () => {
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (x) => x,
             });
 
-            expect(container["_latestBatch"]).toEqual(false);
+            expect(container["_latestBatch"]).toBeInstanceOf(SingleBatch);
 
             const batch = container["_createNewBatch"]();
 
-            expect(batch).toBeInstanceOf(Batch);
-            expect(container["_latestBatch"]).toBeInstanceOf(Batch);
+            expect(batch).toBeInstanceOf(SingleBatch);
+            expect(container["_latestBatch"]).toBeInstanceOf(SingleBatch);
 
             expect(batch.items).toBeInstanceOf(Array);
-            expect((container["_latestBatch"] as Batch<any, any>).items).toBeInstanceOf(Array);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>).items).toBeInstanceOf(Array);
 
             expect(batch.items).toHaveLength(0);
-            expect((container["_latestBatch"] as Batch<any, any>).items).toHaveLength(0);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>).items).toHaveLength(0);
 
             expect(batch.items).toEqual([]);
-            expect((container["_latestBatch"] as Batch<any, any>).items).toEqual([]);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>).items).toEqual([]);
 
             batch.pushItemToBatch(["1"]);
 
             expect(batch.items).toEqual(["1"]);
-            expect((container["_latestBatch"] as Batch<any, any>).items).toEqual(["1"]);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>).items).toEqual(["1"]);
 
         });
 
         test("When existing batches already exist", () => {
 
-            const container = new Batcher({
-                getDataCallback: (x) => x,
+            const container = new AutoBatcher({
+                dataFunction: (x) => x,
                 mappingCallback: (x) => x,
             });
 
-            expect(container["_latestBatch"]).toEqual(false);
+            expect(container["_latestBatch"]).toBeInstanceOf(SingleBatch);
 
             for (let i = 0; i < 10; i++) {
                 container.makeRequest(["item" + i]);
             }
 
-            expect((container["_latestBatch"] as Batch<any, any>)).toBeInstanceOf(Batch);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>)).toBeInstanceOf(SingleBatch);
 
-            expect((container["_latestBatch"] as Batch<any, any>).items).toBeInstanceOf(Array);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>).items).toBeInstanceOf(Array);
 
-            expect((container["_latestBatch"] as Batch<any, any>).items).toHaveLength(10);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>).items).toHaveLength(10);
 
             const batch = container["_createNewBatch"]();
 
-            expect(batch).toBeInstanceOf(Batch);
-            expect(container["_latestBatch"]).toBeInstanceOf(Batch);
+            expect(batch).toBeInstanceOf(SingleBatch);
+            expect(container["_latestBatch"]).toBeInstanceOf(SingleBatch);
 
             expect(batch.items).toBeInstanceOf(Array);
-            expect((container["_latestBatch"] as Batch<any, any>).items).toBeInstanceOf(Array);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>).items).toBeInstanceOf(Array);
 
             expect(batch.items).toHaveLength(0);
-            expect((container["_latestBatch"] as Batch<any, any>).items).toHaveLength(0);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>).items).toHaveLength(0);
 
             expect(batch.items).toEqual([]);
-            expect((container["_latestBatch"] as Batch<any, any>).items).toEqual([]);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>).items).toEqual([]);
 
             batch.pushItemToBatch(["1"]);
 
             expect(batch.items).toEqual(["1"]);
-            expect((container["_latestBatch"] as Batch<any, any>).items).toEqual(["1"]);
+            expect((container["_latestBatch"] as SingleBatch<any, any, any>).items).toEqual(["1"]);
 
         });
 
@@ -389,13 +388,13 @@ describe("Request Container", () => {
 
                     expect.assertions(ids.length * 4);
 
-                    const container = new Batcher<any, any, any>({
-                        getDataCallback: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
+                    const container = new AutoBatcher<any, any, any>({
+                        dataFunction: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
                         mappingCallback: (x, y) => y.filter((item) => x.includes(item._id)).map((item) => ({
                             id: item._id,
                             value: item.isActive ? item.tags[0] : false,
                         })),
-                        maxBatchSize: 10,
+                        maxSize: 10,
                     });
 
                     let responseCount = 0;
@@ -441,13 +440,13 @@ describe("Request Container", () => {
 
                     expect.assertions(202);
 
-                    const container = new Batcher<any, any, any>({
-                        getDataCallback: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(x.map((id) => dataSet.find((d: any) => d._id === id))), 500)),
+                    const container = new AutoBatcher<any, any, any>({
+                        dataFunction: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(x.map((id) => dataSet.find((d: any) => d._id === id))), 500)),
                         mappingCallback: (x, y) => y.filter((item) => x.includes(item._id)).map((item) => ({
                             id: item._id,
                             value: item.isActive ? item.tags[0] : false,
                         })),
-                        maxBatchSize: 10,
+                        maxSize: 10,
                     });
 
                     container.makeRequest(ids).then((response) => {
@@ -483,13 +482,13 @@ describe("Request Container", () => {
 
                 expect.assertions(400);
 
-                const container = new Batcher<any, any, any>({
-                    getDataCallback: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
+                const container = new AutoBatcher<any, any, any>({
+                    dataFunction: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
                     mappingCallback: (x, y) => y.filter((item) => x.includes(item._id)).map((item) => ({
                         id: item._id,
                         value: item.isActive ? item.tags[0] : false,
                     })),
-                    maxBatchSize: 10,
+                    maxSize: 10,
                 });
 
                 let responseCount = 0;
@@ -525,13 +524,13 @@ describe("Request Container", () => {
 
                 expect.assertions(202);
 
-                const container = new Batcher<any, any, any>({
-                    getDataCallback: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
+                const container = new AutoBatcher<any, any, any>({
+                    dataFunction: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
                     mappingCallback: (x, y) => y.filter((item) => x.includes(item._id)).map((item) => ({
                         id: item._id,
                         value: item.isActive ? item.tags[0] : false,
                     })),
-                    maxBatchSize: 10,
+                    maxSize: 10,
                 });
 
                 container.makeRequest(ids).then((response) => {
@@ -569,8 +568,8 @@ describe("Request Container", () => {
 
                 expect.assertions(400);
 
-                const container = new Batcher<any, any, any>({
-                    getDataCallback: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
+                const container = new AutoBatcher<any, any, any>({
+                    dataFunction: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
                     mappingCallback: (x, y) => y.filter((item) => x.includes(item._id)).map((item) => ({
                         id: item._id,
                         value: item.isActive ? item.tags[0] : false,
@@ -610,8 +609,8 @@ describe("Request Container", () => {
 
                 expect.assertions(202);
 
-                const container = new Batcher<any, any, any>({
-                    getDataCallback: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
+                const container = new AutoBatcher<any, any, any>({
+                    dataFunction: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
                     mappingCallback: (x, y) => y.filter((item) => x.includes(item._id)).map((item) => ({
                         id: item._id,
                         value: item.isActive ? item.tags[0] : false,
@@ -659,13 +658,13 @@ describe("Request Container", () => {
 
                 expect.assertions(4);
 
-                const container = new Batcher<any, any, any>({
-                    getDataCallback: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
+                const container = new AutoBatcher<any, any, any>({
+                    dataFunction: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
                     mappingCallback: (x, y) => y.filter((item) => x.includes(item._id)).map((item) => ({
                         id: item._id,
                         value: item.isActive ? item.tags[0] : false,
                     })),
-                    maxBatchSize: 10,
+                    maxSize: 10,
                 });
 
                 container.makeRequest(idArr).then((response) => {
@@ -709,8 +708,8 @@ describe("Request Container", () => {
 
                 expect.assertions(ids.length * 4);
 
-                const container = new Batcher<any, any, any>({
-                    getDataCallback: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
+                const container = new AutoBatcher<any, any, any>({
+                    dataFunction: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
                     mappingCallback: (x, y) => y.filter((item) => x.includes(item._id)).map((item) => ({
                         id: item._id,
                         value: item.isActive ? item.tags[0] : false,
@@ -760,8 +759,8 @@ describe("Request Container", () => {
 
                 expect.assertions(202);
 
-                const container = new Batcher<any, any, any>({
-                    getDataCallback: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
+                const container = new AutoBatcher<any, any, any>({
+                    dataFunction: (x: any[]) => new Promise((resolve) => setTimeout(() => resolve(dataSet.filter((item: any) => x.includes(item._id))), 500)),
                     mappingCallback: (x, y) => y.filter((item) => x.includes(item._id)).map((item) => ({
                         id: item._id,
                         value: item.isActive ? item.tags[0] : false,

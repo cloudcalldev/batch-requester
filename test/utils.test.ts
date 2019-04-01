@@ -1,8 +1,25 @@
 // tslint:disable:no-magic-numbers
 
-import { ConvertToArray, FlattenArray } from "../src/lib/utils";
+import { ConvertNumberToString, ConvertToArray, FlattenArray } from "../src/lib/utils";
 
 describe("Utils function", () => {
+
+    describe ("ConvertNumberToString shoudl handle data", () => {
+
+        test("successfully", () => {
+            expect(ConvertNumberToString(1)).toEqual("1");
+            expect(ConvertNumberToString("1")).toEqual("1");
+        });
+
+        test("When no data is passed in", () => {
+            expect(ConvertNumberToString(undefined as any)).toEqual(undefined);
+        });
+
+        test("When bad data is passed in", () => {
+            expect(ConvertNumberToString(false as any)).toEqual(false);
+        });
+
+    });
 
     describe("FlattenArray should handle data", () => {
 

@@ -41,6 +41,8 @@ export class CacheBucket {
         if (this._items[key] && this._items[key].timeout) clearTimeout(this._items[key].timeout);
     }
 
-    private _expireItem = (key: string) => delete this._items[key];
+    private _expireItem = (key: string) => {
+        delete this._items[key];
+    }
 
 }

@@ -1,7 +1,8 @@
 // tslint:disable:no-magic-numbers
 // tslint:disable:no-non-null-assertion
+// tslint:disable:max-file-line-count
 
-import { Batch } from "../src/lib/batch";
+import { SingleBatch } from "../src/lib/batch/singleBatch";
 
 describe("Single Batch", () => {
 
@@ -9,9 +10,11 @@ describe("Single Batch", () => {
 
         test("A simple instance", () => {
 
-            const batch = new Batch(250, () => [null], 10);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
 
-            expect(batch).toBeInstanceOf(Batch);
+            expect(batch).toBeInstanceOf(SingleBatch);
 
             expect(batch.items).toBeInstanceOf(Array);
 
@@ -23,9 +26,12 @@ describe("Single Batch", () => {
 
         test("A simple instance with initial items", () => {
 
-            const batch = new Batch(250, () => [null], 10, 5000, [1, 2, 3]);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+                initialItems: [1, 2, 3],
+            });
 
-            expect(batch).toBeInstanceOf(Batch);
+            expect(batch).toBeInstanceOf(SingleBatch);
 
             expect(batch.items).toBeInstanceOf(Array);
 
@@ -39,9 +45,12 @@ describe("Single Batch", () => {
 
         test("A simple instance with a single initial item", () => {
 
-            const batch = new Batch(250, () => [null], 10, 5000, 2);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+                initialItems: 2,
+            });
 
-            expect(batch).toBeInstanceOf(Batch);
+            expect(batch).toBeInstanceOf(SingleBatch);
 
             expect(batch.items).toBeInstanceOf(Array);
 
@@ -58,26 +67,49 @@ describe("Single Batch", () => {
     describe("Should throw correct constructor error", () => {
 
         test("If the Data Function is not provided", () => {
-            expect(() => new Batch(250, null!, 10)).toThrow(new Error("Data Function must be provided"));
+            expect(() => new SingleBatch({
+                initialItems: 2,
+            } as any)).toThrow(new Error("Data Function must be provided"));
         });
 
         test("If the Data Function is not a function", () => {
-            expect(() => new Batch(250, true as any, 10)).toThrow(new Error("Data Function must be a function"));
+            expect(() => new SingleBatch({
+                dataFunction: true,
+                initialItems: 2,
+            } as any)).toThrow(new Error("Data Function must be a function"));
         });
 
         test("If the max size is not in range", () => {
-            expect(() => new Batch(250, () => [null], 1)).toThrow(new Error("Max size does not fall within allowed range"));
-            expect(() => new Batch(250, () => [null], 5000)).toThrow(new Error("Max size does not fall within allowed range"));
+            expect(() => new SingleBatch({
+                dataFunction: () => [null],
+                maxSize: 1,
+            })).toThrow(new Error("Max size does not fall within allowed range"));
+            expect(() => new SingleBatch({
+                dataFunction: () => [null],
+                maxSize: 5000,
+            })).toThrow(new Error("Max size does not fall within allowed range"));
         });
 
         test("If the max data fetch time is not in range", () => {
-            expect(() => new Batch(250, () => [null], 10, 100)).toThrow(new Error("Max Data Fetch Time does not fall within allowed range"));
-            expect(() => new Batch(250, () => [null], 10, 50000)).toThrow(new Error("Max Data Fetch Time does not fall within allowed range"));
+            expect(() => new SingleBatch({
+                dataFunction: () => [null],
+                maxDataFetchTime: 100,
+            })).toThrow(new Error("Max Data Fetch Time does not fall within allowed range"));
+            expect(() => new SingleBatch({
+                dataFunction: () => [null],
+                maxDataFetchTime: 50000,
+            })).toThrow(new Error("Max Data Fetch Time does not fall within allowed range"));
         });
 
         test("If the timeout is not in range", () => {
-            expect(() => new Batch(1, () => [null], 10)).toThrow(new Error("Timeout does not fall within allowed range"));
-            expect(() => new Batch(2000, () => [null], 10)).toThrow(new Error("Timeout does not fall within allowed range"));
+            expect(() => new SingleBatch({
+                dataFunction: () => [null],
+                timeout: 1,
+            })).toThrow(new Error("Timeout does not fall within allowed range"));
+            expect(() => new SingleBatch({
+                dataFunction: () => [null],
+                timeout: 2000,
+            })).toThrow(new Error("Timeout does not fall within allowed range"));
         });
 
     });
@@ -88,7 +120,9 @@ describe("Single Batch", () => {
 
             jest.useFakeTimers();
 
-            const batch = new Batch(100, () => [null], 100);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
 
             for (let i = 0; i < 100; i++) {
                 expect(batch.pushItemToBatch(["item" + i])).toEqual([]);
@@ -104,7 +138,9 @@ describe("Single Batch", () => {
 
             jest.useFakeTimers();
 
-            const batch = new Batch(100, () => [null], 100);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
 
             expect(setTimeout).toHaveBeenCalledTimes(0);
 
@@ -122,7 +158,10 @@ describe("Single Batch", () => {
 
         describe("When a single array element is pushed", () => {
 
-            const batch = new Batch(100, () => [null]);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
+
             batch.pushItemToBatch(["item1"]);
 
             test("The pushed item exists in `items` correctly", () => {
@@ -137,45 +176,45 @@ describe("Single Batch", () => {
 
             test("The `Contains` function returns the correct data with the `included` type", () => {
 
-                expect(batch.checkIfBatchContains(["item1"], "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1"])).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1"], "included")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item1"])).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item1"], "included")).toEqual(["item1"]);
+                expect(batch.checkIfBatchContains(["item1"])).toEqual(["item1"]);
 
-                expect(batch.checkIfBatchContains(["item2"], "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item2"])).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item2"], "included")).toHaveLength(0);
+                expect(batch.checkIfBatchContains(["item2"])).toHaveLength(0);
 
-                expect(batch.checkIfBatchContains(["item2"], "included")).toEqual([]);
+                expect(batch.checkIfBatchContains(["item2"])).toEqual([]);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1", "item2"])).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item1", "item2"])).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toEqual(["item1"]);
+                expect(batch.checkIfBatchContains(["item1", "item2"])).toEqual(["item1"]);
 
             });
 
             test("The `Contains` function returns the correct data with the `excluded` type", () => {
 
-                expect(batch.checkIfBatchContains(["item1"], "excluded")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1"], false)).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1"], "excluded")).toHaveLength(0);
+                expect(batch.checkIfBatchContains(["item1"], false)).toHaveLength(0);
 
-                expect(batch.checkIfBatchContains(["item1"], "excluded")).toEqual([]);
+                expect(batch.checkIfBatchContains(["item1"], false)).toEqual([]);
 
-                expect(batch.checkIfBatchContains(["item2"], "excluded")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item2"], false)).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item2"], "excluded")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item2"], false)).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item2"], "excluded")).toEqual(["item2"]);
+                expect(batch.checkIfBatchContains(["item2"], false)).toEqual(["item2"]);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "excluded")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1", "item2"], false)).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "excluded")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item1", "item2"], false)).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "excluded")).toEqual(["item2"]);
+                expect(batch.checkIfBatchContains(["item1", "item2"], false)).toEqual(["item2"]);
 
             });
 
@@ -183,7 +222,9 @@ describe("Single Batch", () => {
 
         describe("When a single element is pushed", () => {
 
-            const batch = new Batch(100, () => [null]);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
             batch.pushItemToBatch("item1");
 
             test("The pushed item exists in `items` correctly", () => {
@@ -198,67 +239,67 @@ describe("Single Batch", () => {
 
             test("The `Contains` function returns the correct data if passed a single element", () => {
 
-                expect(batch.checkIfBatchContains("item1", "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains("item1")).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains("item1", "included")).toHaveLength(1);
+                expect(batch.checkIfBatchContains("item1")).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains("item1", "included")).toEqual(["item1"]);
+                expect(batch.checkIfBatchContains("item1")).toEqual(["item1"]);
 
-                expect(batch.checkIfBatchContains("item2", "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains("item2")).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains("item2", "included")).toHaveLength(0);
+                expect(batch.checkIfBatchContains("item2")).toHaveLength(0);
 
-                expect(batch.checkIfBatchContains("item2", "included")).toEqual([]);
+                expect(batch.checkIfBatchContains("item2")).toEqual([]);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1", "item2"])).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item1", "item2"])).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toEqual(["item1"]);
+                expect(batch.checkIfBatchContains(["item1", "item2"])).toEqual(["item1"]);
 
             });
 
             test("The `Contains` function returns the correct data with the `included` type", () => {
 
-                expect(batch.checkIfBatchContains(["item1"], "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1"])).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1"], "included")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item1"])).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item1"], "included")).toEqual(["item1"]);
+                expect(batch.checkIfBatchContains(["item1"])).toEqual(["item1"]);
 
-                expect(batch.checkIfBatchContains(["item2"], "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item2"])).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item2"], "included")).toHaveLength(0);
+                expect(batch.checkIfBatchContains(["item2"])).toHaveLength(0);
 
-                expect(batch.checkIfBatchContains(["item2"], "included")).toEqual([]);
+                expect(batch.checkIfBatchContains(["item2"])).toEqual([]);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1", "item2"])).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item1", "item2"])).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "included")).toEqual(["item1"]);
+                expect(batch.checkIfBatchContains(["item1", "item2"])).toEqual(["item1"]);
 
             });
 
             test("The `Contains` function returns the correct data with the `excluded` type", () => {
 
-                expect(batch.checkIfBatchContains(["item1"], "excluded")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1"], false)).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1"], "excluded")).toHaveLength(0);
+                expect(batch.checkIfBatchContains(["item1"], false)).toHaveLength(0);
 
-                expect(batch.checkIfBatchContains(["item1"], "excluded")).toEqual([]);
+                expect(batch.checkIfBatchContains(["item1"], false)).toEqual([]);
 
-                expect(batch.checkIfBatchContains(["item2"], "excluded")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item2"], false)).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item2"], "excluded")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item2"], false)).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item2"], "excluded")).toEqual(["item2"]);
+                expect(batch.checkIfBatchContains(["item2"], false)).toEqual(["item2"]);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "excluded")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1", "item2"], false)).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "excluded")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item1", "item2"], false)).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item1", "item2"], "excluded")).toEqual(["item2"]);
+                expect(batch.checkIfBatchContains(["item1", "item2"], false)).toEqual(["item2"]);
 
             });
 
@@ -266,7 +307,9 @@ describe("Single Batch", () => {
 
         describe("When a multiple elements are pushed", () => {
 
-            const batch = new Batch(100, () => [null]);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
 
             batch.pushItemToBatch(["item1", "item2", "item3", "item4"]);
 
@@ -282,45 +325,45 @@ describe("Single Batch", () => {
 
             test("The `Contains` function returns the correct data with `included` as type", () => {
 
-                expect(batch.checkIfBatchContains(["item1"], "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1"])).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1"], "included")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item1"])).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item1"], "included")).toEqual(["item1"]);
+                expect(batch.checkIfBatchContains(["item1"])).toEqual(["item1"]);
 
-                expect(batch.checkIfBatchContains(["item5"], "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item5"])).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item5"], "included")).toHaveLength(0);
+                expect(batch.checkIfBatchContains(["item5"])).toHaveLength(0);
 
-                expect(batch.checkIfBatchContains(["item5"], "included")).toEqual([]);
+                expect(batch.checkIfBatchContains(["item5"])).toEqual([]);
 
-                expect(batch.checkIfBatchContains(["item1", "item2", "item5"], "included")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1", "item2", "item5"])).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1", "item2", "item5"], "included")).toHaveLength(2);
+                expect(batch.checkIfBatchContains(["item1", "item2", "item5"])).toHaveLength(2);
 
-                expect(batch.checkIfBatchContains(["item1", "item2", "item5"], "included")).toEqual(["item1", "item2"]);
+                expect(batch.checkIfBatchContains(["item1", "item2", "item5"])).toEqual(["item1", "item2"]);
 
             });
 
             test("The `Contains` function returns the correct data with `excluded` as type", () => {
 
-                expect(batch.checkIfBatchContains(["item1"], "excluded")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1"], false)).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1"], "excluded")).toHaveLength(0);
+                expect(batch.checkIfBatchContains(["item1"], false)).toHaveLength(0);
 
-                expect(batch.checkIfBatchContains(["item1"], "excluded")).toEqual([]);
+                expect(batch.checkIfBatchContains(["item1"], false)).toEqual([]);
 
-                expect(batch.checkIfBatchContains(["item5"], "excluded")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item5"], false)).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item5"], "excluded")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item5"], false)).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item5"], "excluded")).toEqual(["item5"]);
+                expect(batch.checkIfBatchContains(["item5"], false)).toEqual(["item5"]);
 
-                expect(batch.checkIfBatchContains(["item1", "item2", "item5"], "excluded")).toBeInstanceOf(Array);
+                expect(batch.checkIfBatchContains(["item1", "item2", "item5"], false)).toBeInstanceOf(Array);
 
-                expect(batch.checkIfBatchContains(["item1", "item2", "item5"], "excluded")).toHaveLength(1);
+                expect(batch.checkIfBatchContains(["item1", "item2", "item5"], false)).toHaveLength(1);
 
-                expect(batch.checkIfBatchContains(["item1", "item2", "item5"], "excluded")).toEqual(["item5"]);
+                expect(batch.checkIfBatchContains(["item1", "item2", "item5"], false)).toEqual(["item5"]);
 
             });
 
@@ -331,7 +374,11 @@ describe("Single Batch", () => {
             test("By using mulitple pushes", () => {
 
                 const maxTestValue = Math.round(Math.random() * 100);
-                const batch = new Batch(100, () => [null], maxTestValue);
+
+                const batch = new SingleBatch({
+                    dataFunction: () => [null],
+                    maxSize: maxTestValue,
+                });
 
                 for (let i = 1; i <= maxTestValue; i++) {
                     batch.pushItemToBatch(["item" + i]);
@@ -343,7 +390,10 @@ describe("Single Batch", () => {
 
             test("By using a single push", () => {
 
-                const batch = new Batch(100, () => [null], 10);
+                const batch = new SingleBatch({
+                    dataFunction: () => [null],
+                    maxSize: 10,
+                });
 
                 const tmpArray: any[] = [];
 
@@ -374,7 +424,10 @@ describe("Single Batch", () => {
 
             test("By using a single push and then error", () => {
 
-                const batch = new Batch(100, () => [null], 10);
+                const batch = new SingleBatch({
+                    dataFunction: () => [null],
+                    maxSize: 10,
+                });
 
                 const tmpArray: any[] = [];
 
@@ -407,7 +460,10 @@ describe("Single Batch", () => {
 
             test("By using a combination of mulitple and single pushes", () => {
 
-                const batch = new Batch(100, () => [null], 10);
+                const batch = new SingleBatch({
+                    dataFunction: () => [null],
+                    maxSize: 10,
+                });
 
                 const tmpArray: any[] = [];
 
@@ -431,7 +487,10 @@ describe("Single Batch", () => {
 
             test("By using a combination of mulitple and single pushes and then recover", () => {
 
-                const batch = new Batch(100, () => [null], 10);
+                const batch = new SingleBatch({
+                    dataFunction: () => [null],
+                    maxSize: 10,
+                });
 
                 const tmpArray: any[] = [];
 
@@ -475,7 +534,9 @@ describe("Single Batch", () => {
 
             jest.useRealTimers();
 
-            const batch = new Batch(100, () => [null]);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
 
             for (let i = 0; i < 10; i++) {
                 batch.pushItemToBatch(["item" + i]);
@@ -495,7 +556,9 @@ describe("Single Batch", () => {
 
             jest.useRealTimers();
 
-            const batch = new Batch(100, () => [null]);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
 
             const tmpBatchA: any[] = [];
             const tmpBatchB: any[] = [];
@@ -527,7 +590,9 @@ describe("Single Batch", () => {
 
             const dataFunction = () => ["newItem1", "newItem2", "newItem3"];
 
-            const batch = new Batch(100, dataFunction);
+            const batch = new SingleBatch({
+                dataFunction,
+            });
 
             batch.pushItemToBatch(["item1", "item2", "item3"]);
 
@@ -545,7 +610,10 @@ describe("Single Batch", () => {
 
             const dataFunction = async (): Promise<boolean[]> => await new Promise((_resolve, _reject) => true);
 
-            const batch = new Batch<string, boolean>(100, dataFunction);
+            const batch = new SingleBatch({
+                dataFunction,
+                maxDataFetchTime: 1000,
+            });
 
             batch.pushItemToBatch(["item1", "item2", "item3"]);
 
@@ -557,7 +625,9 @@ describe("Single Batch", () => {
 
             expect.assertions(1);
 
-            const batch = new Batch<string, boolean>(100, (): any => false);
+            const batch = new SingleBatch({
+                dataFunction: () => false as any,
+            });
 
             batch.pushItemToBatch(["item1", "item2", "item3"]);
 
@@ -571,7 +641,9 @@ describe("Single Batch", () => {
 
         test("And no items are pushed", () => {
 
-            const batch = new Batch(100, () => [null]);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
 
             expect(() => batch.pushItemToBatch([])).toThrowError(new Error("Cannot Push Empty Value To Batch"));
 
@@ -579,7 +651,9 @@ describe("Single Batch", () => {
 
         test("And duplicate items are pushed in multiple pushes", () => {
 
-            const batch = new Batch(100, () => [null]);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
 
             for (let i = 0; i < 10; i++) {
                 batch.pushItemToBatch(["item1"]);
@@ -595,7 +669,9 @@ describe("Single Batch", () => {
 
         test("And duplicate items are pushed in a single push", () => {
 
-            const batch = new Batch(100, () => [null]);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
 
             const arr = [];
 
@@ -615,7 +691,9 @@ describe("Single Batch", () => {
 
         test("Mixed in with good data", () => {
 
-            const batch = new Batch(100, () => [null]);
+            const batch = new SingleBatch({
+                dataFunction: () => [null],
+            });
 
             const testArr = [];
 
