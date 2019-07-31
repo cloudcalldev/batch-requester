@@ -74,6 +74,15 @@ export default class Batcher<Input, PreTransform, Output> {
      */
     private _batches: Array<Batch<Input, PreTransform>>;
 
+    /**
+     *
+     * @summary Should use cache or not
+     * @private
+     * @type {boolean}
+     * @memberof Batcher
+     */
+    private _isCacheEnabled: boolean;
+
     constructor(opts: IBatchRequestsOptions<Input, PreTransform, Output>) {
 
         const DELAY_BETWEEN_REQUESTS = 100;
@@ -83,6 +92,7 @@ export default class Batcher<Input, PreTransform, Output> {
         this._validateConstructorParameters(opts);
 
         this._delayBetweenRequests = opts.delay || DELAY_BETWEEN_REQUESTS;
+        this._isCacheEnabled = !!opts.cache;
 
         this._maxSize = opts.maxBatchSize || MAX_SIZE;
         this._maxDataFetchTime = opts.maxTime || MAX_TIME;
@@ -135,6 +145,10 @@ export default class Batcher<Input, PreTransform, Output> {
         const NEW_BATCH = new Batch(this._delayBetweenRequests, this._dataFunction, this._maxSize, this._maxDataFetchTime);
 
         this._batches.push(NEW_BATCH);
+
+        !this._isCacheEnabled && NEW_BATCH.response.finally(() => {
+            this._batches.splice(this._batches.indexOf(NEW_BATCH), 1);
+        });
 
         return NEW_BATCH;
 
