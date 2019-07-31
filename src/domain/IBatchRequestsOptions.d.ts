@@ -7,4 +7,5 @@ export interface IBatchRequestsOptions<T, S, R> {
     delay?: number;
     maxBatchSize?: number;
     maxTime?: number;
+    cache?: boolean;
 }
