@@ -65,15 +65,14 @@ describe("Request Container", () => {
 
         test("With a single element array", async () => {
 
-            expect.assertions(2);
+            expect.assertions(1);
 
             const container = new Batcher({
                 getDataCallback: (x) => x,
-                mappingCallback: (x) => x,
+                mappingCallback: (x) => x
             });
 
             await expect(container.makeRequest([1])).resolves.toEqual([1]);
-            expect((container["_latestBatch"] as Batch<any, any>).items).toEqual([1]);
 
         });
 
@@ -794,4 +793,67 @@ describe("Request Container", () => {
 
     });
 
+    describe("Should work correctly with and without cache", () => {
+
+        test('with cache', async () => {
+
+            expect.assertions(2);
+
+            jest.useRealTimers();
+
+            let counter = 0;
+
+            const container = new Batcher<any, any, any>({
+                getDataCallback: (x: any[]) => {
+                    counter = counter + 1;
+                    return Promise.resolve(x);
+                },
+                mappingCallback: (original, response) => ([ ...original, ...response ]), // doesn't matter
+                cache: true
+            });
+            
+            await container.makeRequest([1, 2, 3]);
+            await container.makeRequest([1, 2]);
+            await container.makeRequest([1]);
+
+            expect(counter).toBe(1);
+            
+            await container.makeRequest([1, 2, 3, 4, 5, 6]);
+
+            expect(counter).toBe(2);
+
+            jest.useFakeTimers();
+        });
+
+        test('without cache', async () => {
+
+            expect.assertions(2);
+
+            jest.useRealTimers();
+
+            let counter = 0;
+
+            const container = new Batcher<any, any, any>({
+                getDataCallback: (x: any[]) => {
+                    counter = counter + 1;
+                    return Promise.resolve(x);
+                },
+                mappingCallback: (original, response) => ([ ...original, ...response ]), // doesn't matter
+                cache: false
+            });
+            
+            await container.makeRequest([1, 2, 3]);
+            await container.makeRequest([1, 2]);
+            await container.makeRequest([1]);
+
+            expect(counter).toBe(3);
+
+            await container.makeRequest([1, 2, 3, 4, 5, 6]);
+
+            expect(counter).toBe(4);
+
+            jest.useFakeTimers();
+        });
+       
+    });
 });

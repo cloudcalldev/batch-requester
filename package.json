@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "test": "jest --coverage --notify --color --roots ./test",
+    "test": "jest --coverage --notify --detectOpenHandles --color --roots ./test",
     "lint": "tslint -p . --fix",
     "prepare": "npm run build",
     "prepublishOnly": "npm test && npm run lint"

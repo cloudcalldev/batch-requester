@@ -238,7 +238,7 @@ export default class Batcher<Input, PreTransform, Output> {
 
         let batch = this._latestBatch as Batch<Input, PreTransform>;
 
-        if (!batch) batch = this._createNewBatch();
+        if (!batch || !batch.acceptingNewItems) batch = this._createNewBatch();
 
         const BATCH_PROMISES = [batch.response];
 

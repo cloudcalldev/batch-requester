@@ -167,6 +167,10 @@ export default class Batch<Input, PreTransform> {
         return this._resultPromise;
     }
 
+    public get acceptingNewItems(): boolean {
+        return this._acceptingNewItems;
+    }
+
     /**
      *
      * @summary Function that takes a simple input that is to be added to the current batch
