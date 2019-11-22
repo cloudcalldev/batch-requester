@@ -317,27 +317,17 @@ export default class Batch<Input, PreTransform> {
 
         this._acceptingNewItems = false;
 
-        let hasTimedOut = false;
+        setTimeout(() => {
+            this._processFailure(new Error("Data Function Timed Out"));
+        }, this._maxDataFetchTime);
 
-        // Race two promises, first is the custom data function, second is the timeout setTimeout
-        const RESULT = await Promise.race([
-            this._dataFunction(this.items),
-            new Promise((resolve) => setTimeout(() => {
-
-                hasTimedOut = true;
-
-                resolve(false);
-
-            }, this._maxDataFetchTime)),
-        ]);
-
-        if (!RESULT && hasTimedOut) this._processFailure(new Error("Data Function Timed Out"));
-
-        else if (!Array.isArray(RESULT)) this._processFailure(new Error("Data Function Responded With Bad Data"));
-
-        else this._processResponse(RESULT);
-
-    }
+        try {
+            const res = await this._dataFunction(this.items);
+            this._processResponse(res);
+        } catch (e) {
+            this._processFailure(e);
+        }
+    };
 
     /**
      * @summary Clears and then recreates the timeout between requests
